@@ -1,0 +1,20 @@
+CXX=CC
+CXXFLAGS=-O2 -std=c++11 -fvisibility=hidden -mp=gpu -target-accel=nvidia80 -fPIC -I../include -I../include/galsim -I/global/homes/j/jamesp/gpu/sw/include -I../downloaded_eigen/eigen-3.3.4 -Minfo
+
+LDFLAGS=-lm -L/global/homes/j/jamesp/sw/lib -lfftw3 -mp=gpu -target-accel=nvidia80
+LD=CC
+
+CPPSOURCES=BinomFact.cpp CDModel.cpp CorrelatedNoise.cpp GSParams.cpp Image.cpp Interpolant.cpp Laguerre.cpp OneDimensionalDeviate.cpp PhotonArray.cpp Polygon.cpp Random.cpp RealGalaxy.cpp RealSpaceConvolve.cpp SBAdd.cpp SBAiry.cpp SBBox.cpp SBConvolve.cpp SBDeconvolve.cpp SBDeltaFunction.cpp SBExponential.cpp SBFourierSqrt.cpp SBGaussian.cpp SBInclinedExponential.cpp SBInclinedSersic.cpp SBInterpolatedImage.cpp SBKolmogorov.cpp SBMoffat.cpp SBProfile.cpp SBSecondKick.cpp SBSersic.cpp SBShapelet.cpp SBSpergel.cpp SBTransform.cpp SBVonKarman.cpp Silicon.cpp Table.cpp Version.cpp WCS.cpp math/Angle.cpp math/Bessel.cpp math/BesselI.cpp math/BesselJ.cpp math/BesselK.cpp math/BesselRoots.cpp math/BesselY.cpp math/Gamma.cpp math/Hankel.cpp math/Horner.cpp math/Nan.cpp math/Sinc.cpp
+
+OBJECTS=$(CPPSOURCES:.cpp=.o)
+
+all: libgalsim.so
+
+libgalsim.so: $(OBJECTS)
+	$(LD) -shared -o libgalsim.so $(OBJECTS) $(LDFLAGS)
+
+.cpp.o:
+	$(CXX) -c $< -o $@ $(CXXFLAGS)
+
+clean:
+	rm -f *.o libgalsim.so
