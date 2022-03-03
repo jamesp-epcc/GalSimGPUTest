@@ -135,12 +135,16 @@ int main(int argc, char *argv[])
 
     // Now fire them at sensor
     galsim::Position<int> origCentre(0, 0);
-    silicon.initialize(im1.view(), origCentre);
+    std::cout << "Initialising sensor" << std::endl;
+    silicon.initializeGPU(im1.view(), origCentre);
+    //silicon.initialize(im1.view(), origCentre);
 
+    std::cout << "Accumulating on GPU" << std::endl;
     silicon.accumulateGPU(photons, 0, 1000000, rng1, im1.view());  // GPU version
     //silicon.accumulate(photons, 0, 1000000, rng1, im1.view());   // CPU version
 
     // Add delta image to actual image
+    std::cout << "Adding delta to image" << std::endl;
     silicon.addDelta(im1.view());
 
     // Save image data in raw binary
