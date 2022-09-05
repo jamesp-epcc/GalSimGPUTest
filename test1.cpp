@@ -26,6 +26,14 @@ My initial goal is to recreate this simple test script in C++:
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cstdio>
+#include <chrono>
+
+//#include <omp.h>
+
+#define NPHOTONS 1000000
+#define NUPDATES 5
+
 
 int main(int argc, char *argv[])
 {
@@ -130,23 +138,40 @@ int main(int argc, char *argv[])
     // Draw image
     std::cout << "Shooting photons" << std::endl;
     // Get photons first
-    galsim::PhotonArray photons(1000000);
+    galsim::PhotonArray photons(NPHOTONS);
     gaussian.shoot(photons, rng1);
 
+    std::chrono::steady_clock::time_point t1, t2, t3, t4;
+    t1 = std::chrono::steady_clock::now();
+    
     // Now fire them at sensor
     galsim::Position<int> origCentre(0, 0);
     std::cout << "Initialising sensor" << std::endl;
     silicon.initializeGPU(im1.view(), origCentre);
     //silicon.initialize(im1.view(), origCentre);
 
-    std::cout << "Accumulating on GPU" << std::endl;
-    silicon.accumulateGPU(photons, 0, 1000000, rng1, im1.view());  // GPU version
-    //silicon.accumulate(photons, 0, 1000000, rng1, im1.view());   // CPU version
+    t2 = std::chrono::steady_clock::now();
+    
+    for (int i = 0; i < NUPDATES; i++) {
+      std::cout << "Accumulating photons " << i << std::endl;
+      silicon.accumulateGPU(photons, 0, NPHOTONS, rng1, im1.view());  // GPU version
+      //silicon.accumulate(photons, 0, NPHOTONS, rng1, im1.view());   // CPU version
+	std::cout << "Updating pixel distortions" << std::endl;
+	silicon.updateGPU(im1.view());
+	//silicon.update(im1.view());
+    }
 
+    t3 = std::chrono::steady_clock::now();
+    
     // Add delta image to actual image
-    std::cout << "Adding delta to image" << std::endl;
-    silicon.addDelta(im1.view());
+    // Shouldn't need this now we're doing update
+    //std::cout << "Adding delta to image" << std::endl;
+    //silicon.addDelta(im1.view());
 
+    silicon.finalizeGPU(im1.view());
+
+    t4 = std::chrono::steady_clock::now();
+    
     // Save image data in raw binary
     std::cout << "Saving result" << std::endl;
     double* imageData = im1.getData();
@@ -171,6 +196,14 @@ int main(int argc, char *argv[])
     out.close();
     
     std::cout << "Done" << std::endl;
+
+    //std::printf("Time including data transfer: %.20f\n", (t4 - t1));
+    //std::printf("Time for computation only:    %.20f\n", (t3 - t2));
+    //std::cout << "Time including data transfer: " << (t4 - t1) << std::endl;
+    //std::cout << "Time for computation only:    " << (t3 - t2) << std::endl;
+
+    std::cout << "Time including data transfer: " << std::chrono::duration_cast<std::chrono::microseconds>(t4 - t1).count() << "us" << std::endl;
+    std::cout << "Time for computation only:    " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() << "us" << std::endl;
     
     return 0;
 }
